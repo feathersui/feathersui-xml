@@ -106,7 +106,7 @@ An anonymous structure. Properties may be set using XML attributes, child elemen
 
 ```xml
 <hx:Dynamic name="Daredevil">
-	<hx:realName>Matt Murdock</hx:realName>
+	<hx:secretIdentity>Matt Murdock</hx:secretIdentity>
 </hx:Dynamic>
 ```
 
