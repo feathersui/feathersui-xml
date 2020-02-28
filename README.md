@@ -53,3 +53,83 @@ Calling the `XmlComponent.withFile()` macro works similarly to `withMarkup()`, b
 ```hx
 var instance = XmlComponent.withFile("path/to/file.xml");
 ```
+
+## Haxe primitive types
+
+A subset of core Haxe types may be used in markup by defining the following namespace: 
+
+```
+xmlns:hx="http://ns.haxe.org/4/xml"
+```
+
+### `Bool`
+
+The value must be `true` or `false`, and it is case-sensitive.
+
+```xml
+<hx:Bool>true</hx:Bool>
+```
+
+### `Float`
+
+A float may be a positive or negative numeric value which may have a decimal portion.
+
+```xml
+<hx:Float>123.4</hx:Float>
+```
+
+### `Int`
+
+An integer may be a positive or negative numeric value, and it must not have a decimal portion. Validated by `Std.parseInt()`.
+
+```xml
+<hx:Int>-456</hx:Int>
+```
+
+### `String`
+
+A sequence of characters.
+
+```xml
+<hx:String>Hello World</hx:String>
+```
+
+If the string value would make the XML invalid, wrap it with CDATA.
+
+```xml
+<hx:String><![CDATA[Some inline HTML<br>that is not valid XML]]></hx:String>
+```
+
+### `Dynamic`
+
+An anonymous structure. Properties may be set using XML attributes, child elements, or a combination of both.
+
+```xml
+<hx:Dynamic name="Daredevil">
+	<hx:realName>Matt Murdock</hx:realName>
+</hx:Dynamic>
+```
+
+### `Array`
+
+An collection of items, which are added as child elements.
+
+```xml
+<hx:Array>
+	<hx:Dynamic name="Matt Murdock"/>
+	<hx:Dynamic name="Foggy Nelson"/>
+	<hx:Dynamic name="Karen Page"/>
+</hx:Array>
+```
+
+## Tips & Tricks
+
+When using [haxe-formatter](https://github.com/HaxeCheckstyle/haxe-formatter), you may want to disable formatting for sections of _.hx_ files that contain embedded markup.
+
+```hx
+var instance = XmlComponent.withMarkup(
+	// @formatter:off
+	<f:LayoutGroup xmlns:f="http://ns.feathersui.com/xml"/>
+	// @formatter:on
+);
+```
