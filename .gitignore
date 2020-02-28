@@ -1,0 +1,9 @@
+*.hxproj
+
+.vscode/
+*.code-workspace
+
+build/
+dump/
+
+.DS_Store
