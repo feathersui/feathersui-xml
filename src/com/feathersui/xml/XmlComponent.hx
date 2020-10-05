@@ -170,10 +170,10 @@ class XmlComponent {
 		componentCounter++;
 		var typeDef:TypeDefinition = null;
 		if (classType == null) {
-			typeDef = macro class $componentName{};
+			typeDef = macro class $componentName {};
 		} else {
 			var superClassTypePath = {name: classType.name, pack: classType.pack};
-			typeDef = macro class $componentName extends $superClassTypePath{};
+			typeDef = macro class $componentName extends $superClassTypePath {};
 		}
 		for (buildField in buildFields) {
 			typeDef.fields.push(buildField);
@@ -234,6 +234,32 @@ class XmlComponent {
 			}
 		}
 		return null;
+	}
+
+	private static function findEvent(type:ClassType, eventName:String):MetadataEntry {
+		for (eventMeta in getAllEvents(type)) {
+			var otherEventName = getEventName(eventMeta);
+			if (otherEventName == eventName) {
+				return eventMeta;
+			}
+		}
+		return null;
+	}
+
+	private static function getEventName(eventMeta:MetadataEntry):String {
+		var typedExprDef = Context.typeExpr(eventMeta.params[0]).expr;
+		return switch (typedExprDef) {
+			case TCast(e, m):
+				switch (e.expr) {
+					case TConst(c):
+						switch (c) {
+							case TString(s): s;
+							default: null;
+						}
+					default: null;
+				}
+			default: null;
+		};
 	}
 
 	private static function parseChildrenOfObject(element:Xml, parentType:ClassType, targetIdentifier:String, parentPrefix:String,
@@ -528,17 +554,24 @@ class XmlComponent {
 		return fields;
 	}
 
+	private static function getAllEvents(type:ClassType):Array<MetadataEntry> {
+		if (type == null) {
+			return [];
+		}
+		var events = type.meta.extract(":event").filter(eventMeta -> eventMeta.params.length == 1);
+		var superClass = type.superClass;
+		if (superClass != null) {
+			for (event in getAllEvents(superClass.t.get())) {
+				events.push(event);
+			}
+		}
+		return events;
+	}
+
 	private static function parseAttributes(element:Xml, parentType:ClassType, targetIdentifier:String, prefixMap:Map<String, String>,
 			initExprs:Array<Expr>):Void {
 		for (attribute in element.attributes()) {
-			var foundField:ClassField = null;
-			for (field in getAllFields(parentType)) {
-				if (field.name != attribute) {
-					continue;
-				}
-				foundField = field;
-				break;
-			}
+			var foundField:ClassField = findField(parentType, attribute);
 			if (foundField != null) {
 				var fieldValue = element.get(attribute);
 				var valueExpr = createValueExprForField(foundField, fieldValue);
@@ -549,8 +582,17 @@ class XmlComponent {
 				var valueExpr = createValueExprForDynamic(fieldValue);
 				var setExpr = macro $i{targetIdentifier}.$attribute = ${valueExpr};
 				initExprs.push(setExpr);
-			} else if (RESERVED_PROPERTIES.indexOf(attribute) == -1 && !StringTools.startsWith(attribute, PROPERTY_XMLNS_PREFIX)) {
-				Context.fatalError('Unknown field \'${attribute}\'', Context.currentPos());
+			} else {
+				var foundEvent = findEvent(parentType, attribute);
+				if (foundEvent != null) {
+					var eventName = getEventName(foundEvent);
+					var eventText = element.get(attribute);
+					var eventExpr = Context.parse(eventText, Context.currentPos());
+					var addEventExpr = macro $i{targetIdentifier}.addEventListener($v{eventName}, (event) -> ${eventExpr});
+					initExprs.push(addEventExpr);
+				} else if (RESERVED_PROPERTIES.indexOf(attribute) == -1 && !StringTools.startsWith(attribute, PROPERTY_XMLNS_PREFIX)) {
+					Context.fatalError('Unknown field \'${attribute}\'', Context.currentPos());
+				}
 			}
 		}
 	}
