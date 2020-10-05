@@ -270,7 +270,29 @@ class XmlComponent {
 			switch (child.nodeType) {
 				case Element:
 					var childXmlName = getXmlName(child);
-					if (isScript(childXmlName, prefixMap)) {
+					if (isXmlLanguageElement("Binding", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Component", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Declarations", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Definition", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("DesignLayer", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Library", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Metadata", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Model", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Private", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Reparent", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Script", childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					} else if (isXmlLanguageElement("Style", childXmlName, prefixMap)) {
 						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
 					}
 					var foundField:ClassField = null;
@@ -783,12 +805,12 @@ class XmlComponent {
 		return false;
 	}
 
-	private static function isScript(xmlName:XmlName, prefixMap:Map<String, String>):Bool {
+	private static function isXmlLanguageElement(elementName:String, xmlName:XmlName, prefixMap:Map<String, String>):Bool {
 		var prefix = xmlName.prefix;
 		if (!prefixMap.exists(prefix)) {
 			Context.fatalError('Unknown XML namespace prefix \'${prefix}\'', Context.currentPos());
 		}
-		return xmlName.localName == "Script" && prefixMap.get(prefix) == URI_HAXE;
+		return xmlName.localName == elementName && prefixMap.get(prefix) == URI_HAXE;
 	}
 	#end
 }
