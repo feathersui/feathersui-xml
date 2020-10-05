@@ -270,6 +270,9 @@ class XmlComponent {
 			switch (child.nodeType) {
 				case Element:
 					var childXmlName = getXmlName(child);
+					if (isScript(childXmlName, prefixMap)) {
+						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+					}
 					var foundField:ClassField = null;
 					if (childXmlName.prefix == parentPrefix) {
 						var localName = childXmlName.localName;
@@ -778,6 +781,14 @@ class XmlComponent {
 			return true;
 		}
 		return false;
+	}
+
+	private static function isScript(xmlName:XmlName, prefixMap:Map<String, String>):Bool {
+		var prefix = xmlName.prefix;
+		if (!prefixMap.exists(prefix)) {
+			Context.fatalError('Unknown XML namespace prefix \'${prefix}\'', Context.currentPos());
+		}
+		return xmlName.localName == "Script" && prefixMap.get(prefix) == URI_HAXE;
 	}
 	#end
 }
