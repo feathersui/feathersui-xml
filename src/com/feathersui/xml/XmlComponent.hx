@@ -275,7 +275,12 @@ class XmlComponent {
 					} else if (isXmlLanguageElement("Component", childXmlName, prefixMap)) {
 						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
 					} else if (isXmlLanguageElement("Declarations", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						if (targetIdentifier == "this") {
+							parseDeclarations(child, prefixMap, parentFields, initExprs);
+						} else {
+							Context.fatalError('The \'<${child.nodeName}>\' tag must be a child of the root element', Context.currentPos());
+						}
+						continue;
 					} else if (isXmlLanguageElement("Definition", childXmlName, prefixMap)) {
 						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
 					} else if (isXmlLanguageElement("DesignLayer", childXmlName, prefixMap)) {
@@ -376,6 +381,48 @@ class XmlComponent {
 
 		parseChildrenForField(defaultChildren.iterator(), targetIdentifier, defaultField, defaultField.name, defaultField.type, prefixMap, parentFields,
 			initExprs);
+	}
+
+	private static function parseDeclarations(element:Xml, prefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>):Void {
+		for (child in element.iterator()) {
+			switch (child.nodeType) {
+				case Element:
+					var childXmlName = getXmlName(child);
+					var objectID = child.get(PROPERTY_ID);
+					var initExpr:Expr = null;
+					if (isBuiltIn(childXmlName, prefixMap) && childXmlName.localName != "Dynamic" && childXmlName.localName != "Array") {
+						// TODO: parse attributes too
+						for (grandChild in child.iterator()) {
+							var str = StringTools.trim(grandChild.nodeValue);
+							initExpr = createValueExprForDynamic(str);
+							var complexType = Context.toComplexType(Context.typeExpr(initExpr).t);
+							if (objectID != null) {
+								parentFields.push({
+									name: objectID,
+									pos: Context.currentPos(),
+									kind: FVar(complexType),
+									access: [APublic]
+								});
+							}
+						}
+					} else {
+						var functionName:String = parseChildElement(child, prefixMap, parentFields);
+						initExpr = macro $i{functionName}();
+					}
+					if (objectID != null) {
+						initExpr = macro this.$objectID = $initExpr;
+					}
+					initExprs.push(initExpr);
+				case PCData:
+					var str = StringTools.trim(child.nodeValue);
+					if (str.length == 0) {
+						continue;
+					}
+					Context.fatalError('The \'${child.nodeValue}\' value is unexpected', Context.currentPos());
+				default:
+					Context.fatalError('Cannot parse XML child \'${child.nodeValue}\' of type \'${child.nodeType}\'', Context.currentPos());
+			}
+		}
 	}
 
 	private static function parseChildrenForField(children:Iterator<Xml>, targetIdentifier:String, field:ClassField, fieldName:String,
