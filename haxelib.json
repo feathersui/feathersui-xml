@@ -1,0 +1,16 @@
+{
+	"name": "feathersui-xml",
+	"url": "https://feathersui.com/",
+	"license": "MIT",
+	"tags": ["openfl", "feathersui", "xml", "mxml"],
+	"description": "XML components for Feathers UI",
+	"version": "1.0.0-alpha.1",
+	"classPath": "src",
+	"dependencies": {
+	  "openfl": "",
+	  "feathersui": ""
+	},
+	"contributors": ["bowlerhat"],
+	"releasenote": "Initial release"
+  }
+  
