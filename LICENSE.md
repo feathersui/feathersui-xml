@@ -1,4 +1,5 @@
-Copyright 2020 Bowler Hat LLC
+feathersui-xml
+Copyright 2021 Bowler Hat LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
