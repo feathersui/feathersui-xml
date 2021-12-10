@@ -687,6 +687,10 @@ class XmlComponent {
 				continue;
 			}
 			var foundField:ClassField = findField(parentType, attribute);
+			if (foundField == null && attribute == "id") {
+				// set id if it's available, otherwise skip it
+				continue;
+			}
 			if (foundField != null) {
 				var fieldValue = element.get(attribute);
 				var valueExpr = createValueExprForField(foundField, fieldValue, element, xmlDocument);
