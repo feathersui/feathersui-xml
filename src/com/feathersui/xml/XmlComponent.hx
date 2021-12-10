@@ -154,7 +154,6 @@ class XmlComponent {
 			Context.error('Component XML file not found: ${filePath}', Context.currentPos());
 		}
 		var content = File.getContent(filePath);
-		trace(filePath);
 		posInfos = {file: filePath, min: 0, max: content.length};
 		return loadXmlString(content);
 	}
