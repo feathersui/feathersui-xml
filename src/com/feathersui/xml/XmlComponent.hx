@@ -333,9 +333,9 @@ class XmlComponent {
 				case Element:
 					var childXmlName = getXmlName(child, prefixMap, xmlDocument);
 					if (isXmlLanguageElement("Binding", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Component", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Declarations", childXmlName, prefixMap)) {
 						if (targetIdentifier == "this") {
 							parseDeclarations(child, prefixMap, parentFields, initExprs, xmlDocument);
@@ -344,23 +344,23 @@ class XmlComponent {
 						}
 						continue;
 					} else if (isXmlLanguageElement("Definition", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("DesignLayer", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Library", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Metadata", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Model", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Private", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Reparent", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Script", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					} else if (isXmlLanguageElement("Style", childXmlName, prefixMap)) {
-						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
+						errorTagNotSupported(child, xmlDocument);
 					}
 					var foundField:ClassField = null;
 					if (childXmlName.prefix == parentPrefix) {
@@ -445,6 +445,10 @@ class XmlComponent {
 
 		parseChildrenForField(element, defaultChildren.iterator(), targetIdentifier, defaultField, defaultField.name, defaultField.type, prefixMap,
 			parentFields, initExprs, xmlDocument);
+	}
+
+	private static function errorTagNotSupported(element:Xml, xmlDocument:Xml176Document):Void {
+		errorAtXmlPosition('The \'<${element.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(element));
 	}
 
 	private static function checkForInvalidAttributes(element:Xml, allowId:Bool, xmlDocument:Xml176Document):Void {
