@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test-neko:
+    strategy:
+      matrix:
+        haxe-version: [4.2.3]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ matrix.haxe-version }}
+      - name: Set up Haxelib dependencies
+        run: |
+          haxelib install lime --quiet
+          haxelib install openfl --quiet
+          haxelib install feathersui --quiet
+          haxelib install utest --quiet
+          haxelib dev feathersui-xml ${{ github.workspace }}
+      - name: Run Tests
+        working-directory: test
+        run: haxelib run openfl test neko
+
+  test-air:
+    strategy:
+      matrix:
+        haxe-version: [4.2.3]
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: joshtynjala/setup-adobe-air-action@v1
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ matrix.haxe-version }}
+      - name: Set up Haxelib dependencies
+        run: |
+          haxelib install lime --quiet
+          haxelib install openfl --quiet
+          haxelib install feathersui --quiet
+          haxelib install utest --quiet
+          haxelib dev feathersui-xml ${{ github.workspace }} 
+          haxelib run lime config AIR_SDK ${{ env.AIR_HOME }}
+      - name: Run Tests
+        working-directory: test
+        run: haxelib run openfl test air
