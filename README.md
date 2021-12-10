@@ -4,6 +4,14 @@ An **experimental** library containing [Haxe macros](https://haxe.org/manual/mac
 
 This markup is inspired by MXML, which is an XML dialect designed for creating user interfaces with Apache Flex (originally developed at Macromedia and then Adobe).
 
+## Installation
+
+This library is not yet available on Haxelib, so you'll need to install it and its dependencies from Github.
+
+```sh
+haxelib git feathersui-xml https://github.com/feathersui/feathersui-xml.git
+```
+
 ## Usage
 
 The `XmlComponent` class contains some macro functions, like `withMarkup()` and `withFile()`, that may be used to create custom components from markup.
