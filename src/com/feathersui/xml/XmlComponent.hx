@@ -586,6 +586,10 @@ class XmlComponent {
 			childTypePath = {name: "Dynamic", pack: []};
 		} else {
 			childTypePath = {name: classType.name, pack: classType.pack};
+			if (classType.name == "Array" && classType.pack.length == 0) {
+				var paramTypePath:TypePath = {name: "Dynamic", pack: []};
+				childTypePath.params = [TPType(TPath(paramTypePath))];
+			}
 		}
 		var returnTypePath = childTypePath;
 		if (classType != null && classType.params.length > 0) {
