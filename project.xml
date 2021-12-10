@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	<meta title="Feathers UI XML Components" package="com.feathersui.xml" version="1.0.0" company="Bowler Hat LLC"/>
+	<app main="openfl.display.Sprite" path="bin" file="feathersui-xml"/>
+	
+	<source path="src"/>
+	
+	<haxelib name="openfl"/>
+	<haxelib name="feathersui"/>
+
+	<haxeflag name="--macro" value="include('com.feathersui.xml')"/>
+</project>
