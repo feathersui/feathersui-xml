@@ -379,6 +379,13 @@ class XmlComponent {
 						continue;
 					}
 
+					for (attribute in child.attributes()) {
+						if (attribute == "id") {
+							continue;
+						}
+						var attrPos = xmlDocument.getAttrPosition(child, attribute);
+						errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
+					}
 					var fieldType = foundField != null ? foundField.type : null;
 					parseChildrenForField(child, child.iterator(), targetIdentifier, foundField, childXmlName.localName, fieldType, prefixMap, parentFields,
 						initExprs, xmlDocument);
