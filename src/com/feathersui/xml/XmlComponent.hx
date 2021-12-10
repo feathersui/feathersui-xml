@@ -22,7 +22,36 @@ import sys.io.File;
 #end
 
 /**
-	Creates Haxe classes and instances at compile-time using XML.
+	Creates Haxe classes and instances at compile-time using XML. The
+	`XmlComponent` class offers two static methods, `withMarkup()` and
+	`withFile()`.
+
+	Pass a markup string to `XmlComponent.withMarkup()` to create a component
+	instance from a string.
+
+	```haxe
+	var instance = XmlComponent.withMarkup(
+		'<f:LayoutGroup xmlns:f="http://ns.feathersui.com/xml">
+			<f:layout>
+				<f:HorizontalLayout gap="10" horizontalAlign="RIGHT"/>
+			</f:layout>
+			<f:Button id="okButton" text="OK"/>
+			<f:Button id="cancelButton" text="Cancel"/>
+		</f:LayoutGroup>'
+	);
+	container.addChild(instance);
+	container.okButton.addEventListener(TriggerEvent.TRIGGER, (event) -> {
+		trace("triggered the OK button");
+	});
+	```
+
+	Pass a file path (relative to the current _.hx_ source file) to
+	`XmlComponent.withFile()` to create a component instance from markup saved
+	in an external file.
+
+	```haxe
+	var instance = XmlComponent.withFile("path/to/file.xml");
+	```
 **/
 @:access("com.feathersui.xml.Xml176Parser")
 class XmlComponent {
