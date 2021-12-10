@@ -379,7 +379,7 @@ class XmlComponent {
 						continue;
 					}
 
-					checkForInvalidAttributes(child, true, xmlDocument);
+					checkForInvalidAttributes(child, false, xmlDocument);
 					var fieldType = foundField != null ? foundField.type : null;
 					parseChildrenForField(child, child.iterator(), targetIdentifier, foundField, childXmlName.localName, fieldType, prefixMap, parentFields,
 						initExprs, xmlDocument);
