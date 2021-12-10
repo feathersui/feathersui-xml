@@ -349,4 +349,5 @@ class Xml176Parser {
 	}
 }
 
+@:noCompletion
 typedef Pos = {from:Int, ?to:Int}
