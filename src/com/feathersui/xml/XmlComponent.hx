@@ -9,7 +9,7 @@
 package com.feathersui.xml;
 
 #if macro
-import com.tenderowls.xml176.Xml176Parser;
+import com.feathersui.xml.Xml176Parser;
 import haxe.io.Path;
 import haxe.macro.Context;
 import haxe.macro.Expr;
@@ -24,6 +24,7 @@ import sys.io.File;
 /**
 	Creates Haxe classes and instances at compile-time using XML.
 **/
+@:access("com.feathersui.xml.Xml176Parser")
 class XmlComponent {
 	#if macro
 	private static final FILE_PATH_TO_TYPE_DEFINITION:Map<String, TypeDefinition> = [];

@@ -20,7 +20,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-package com.tenderowls.xml176;
+// Original Source: https://github.com/tenderowls/xml176/blob/19ecca26d5a9ee949b02b1e0b779f49c7222cb08/src/main/haxe/com/tenderowls/xml176/Xml176Parser.hx
+package com.feathersui.xml;
 
 import haxe.xml.Parser.XmlParserException;
 
@@ -49,6 +50,7 @@ extern private class S {
 	public static inline var ESCAPE = 18;
 }
 
+@:noCompletion
 class Xml176Document {
 	public var document(default, null):Xml;
 
@@ -70,6 +72,7 @@ class Xml176Document {
 	}
 }
 
+@:noCompletion
 class Xml176Parser {
 	static public function parse(str:String) {
 		var xmlDoc = Xml.createDocument();
