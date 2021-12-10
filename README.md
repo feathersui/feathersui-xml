@@ -32,7 +32,7 @@ Calling the `XmlComponent.withMarkup()` macro generates a Haxe class from inline
 
 ```hx
 var instance = XmlComponent.withMarkup(
-	<f:LayoutGroup>
+	<f:LayoutGroup xmlns:f="http://ns.feathersui.com/xml">
 		<f:layout>
 			<f:HorizontalLayout gap="10" horizontalAlign="RIGHT"/>
 		</f:layout>
