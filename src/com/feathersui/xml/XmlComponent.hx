@@ -679,6 +679,9 @@ class XmlComponent {
 	private static function parseAttributes(element:Xml, parentType:ClassType, targetIdentifier:String, prefixMap:Map<String, String>, initExprs:Array<Expr>,
 			xmlDocument:Xml176Document):Void {
 		for (attribute in element.attributes()) {
+			if (StringTools.startsWith(attribute, "xmlns:")) {
+				continue;
+			}
 			var foundField:ClassField = findField(parentType, attribute);
 			if (foundField != null) {
 				var fieldValue = element.get(attribute);
