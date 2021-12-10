@@ -15,12 +15,22 @@ import haxe.macro.Expr.Field;
 	`XmlComponent` class. The namespace URI for Feathers UI is
 	`http://ns.feathersui.com/xml`.
 
-	Usage:
+	To initialize this namespace, call the `setup()` function in your
+	_project.xml_ file or as a build macro.
 
-	```hx
-	@:build(com.feathersui.xml.FeathersUICoreNamespace.setup())
-	class MyClass {}
+	```xml
+	<!-- project.xml -->
+	<haxeflag name="--macro" value="com.feathersui.xml.FeathersUICoreNamespace.setup()"/>
 	```
+
+	```haxe
+	// build macro
+	@:build(com.feathersui.xml.FeathersUICoreNamespace.setup())
+	class MyClass extends Application {}
+	```
+
+	Then, add `xmlns:f="http://ns.feathersui.com/xml"` to the root element of
+	your XML component.
 
 	@see `com.feathersui.xml.XmlComponent`
 **/
