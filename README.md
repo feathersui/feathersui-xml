@@ -10,35 +10,44 @@ The `XmlComponent` class contains some macro functions, like `withMarkup()` and 
 
 By default, the `XmlComponent` class doesn't know anything about Feathers UI. It is meant to be a generic library that can be used with other UI component frameworks too. To add Feathers UI components to the set of available tags, a special build macro must be added to the project.
 
-```hx
+You can add it in your _project.xml_ file:
+
+```xml
+<haxeflag name="--macro" value="com.feathersui.xml.FeathersUICoreNamespace.setup()"/>
+```
+
+Or you can add it as a build macro to your application class:
+
+```haxe
 import feathers.core.Application;
-import com.feathersui.xml.XmlComponent;
 
 @:build(com.feathersui.xml.FeathersUICoreNamespace.setup())
 class Main extends Application {
 	public function new() {
-		var label = XmlComponent.withMarkup(
-			<f:Label xmlns:f="http://ns.feathersui.com/xml"
-				text="Hello World"/>
-		);
-		this.addChild(label);
+		super();
 	}
 }
+```
+
+Be sure to import the `XmlComponent` class to use the methods demonstrated below.
+
+```haxe
+import com.feathersui.xml.XmlComponent;
 ```
 
 ### `withMarkup()`
 
 Calling the `XmlComponent.withMarkup()` macro generates a Haxe class from inline markup (or from a string), and then it returns a new instance.
 
-```hx
+```haxe
 var instance = XmlComponent.withMarkup(
-	<f:LayoutGroup xmlns:f="http://ns.feathersui.com/xml">
+	'<f:LayoutGroup xmlns:f="http://ns.feathersui.com/xml">
 		<f:layout>
 			<f:HorizontalLayout gap="10" horizontalAlign="RIGHT"/>
 		</f:layout>
 		<f:Button id="okButton" text="OK"/>
 		<f:Button id="cancelButton" text="Cancel"/>
-	</f:LayoutGroup>
+	</f:LayoutGroup>'
 );
 container.addChild(instance);
 container.okButton.addEventListener(TriggerEvent.TRIGGER, (event) -> {
@@ -50,7 +59,7 @@ container.okButton.addEventListener(TriggerEvent.TRIGGER, (event) -> {
 
 Calling the `XmlComponent.withFile()` macro works similarly to `withMarkup()`, but the XML is loaded from a separate file. Relative paths are resolved from the folder containing the _.hx_ file where the macro is used.
 
-```hx
+```haxe
 var instance = XmlComponent.withFile("path/to/file.xml");
 ```
 
@@ -126,10 +135,11 @@ An collection of items, which are added as child elements.
 
 When using [haxe-formatter](https://github.com/HaxeCheckstyle/haxe-formatter), you may want to disable formatting for sections of _.hx_ files that contain embedded markup.
 
-```hx
+```haxe
 var instance = XmlComponent.withMarkup(
 	// @formatter:off
-	<f:LayoutGroup xmlns:f="http://ns.feathersui.com/xml"/>
+	'<f:LayoutGroup xmlns:f="http://ns.feathersui.com/xml">
+	</f:LayoutGroup>'
 	// @formatter:on
 );
 ```
