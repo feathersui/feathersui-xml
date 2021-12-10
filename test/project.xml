@@ -11,5 +11,7 @@
 	<haxelib name="feathersui" />
 	<haxelib name="utest" />
 
+	<haxeflag name="--macro" value="com.feathersui.xml.FeathersUICoreNamespace.setup()"/>
+
 	<template path="templates" if="html5"/>
 </project>

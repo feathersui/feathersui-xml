@@ -8,6 +8,7 @@ class TestMain extends Sprite {
 
 		var runner = new Runner();
 		runner.addCase(new com.feathersui.xml.TestXmlComponentDeclarationsCoreTypes());
+		runner.addCase(new com.feathersui.xml.TestXmlComponentDisplayList());
 
 		// a report prints the final results after all tests have run
 		Report.create(runner);
