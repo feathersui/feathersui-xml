@@ -65,7 +65,7 @@ var instance = XmlComponent.withFile("path/to/file.xml");
 
 ## Haxe primitive types
 
-A subset of core Haxe types may be used in markup by defining the following namespace: 
+A subset of core Haxe types may be used in markup by defining the following namespace:
 
 ```
 xmlns:hx="http://ns.haxe.org/4/xml"
