@@ -379,13 +379,7 @@ class XmlComponent {
 						continue;
 					}
 
-					for (attribute in child.attributes()) {
-						if (attribute == "id") {
-							continue;
-						}
-						var attrPos = xmlDocument.getAttrPosition(child, attribute);
-						errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
-					}
+					checkForInvalidAttributes(child, true, xmlDocument);
 					var fieldType = foundField != null ? foundField.type : null;
 					parseChildrenForField(child, child.iterator(), targetIdentifier, foundField, childXmlName.localName, fieldType, prefixMap, parentFields,
 						initExprs, xmlDocument);
@@ -453,8 +447,19 @@ class XmlComponent {
 			parentFields, initExprs, xmlDocument);
 	}
 
+	private static function checkForInvalidAttributes(element:Xml, allowId:Bool, xmlDocument:Xml176Document):Void {
+		for (attribute in element.attributes()) {
+			if (allowId && attribute == "id") {
+				continue;
+			}
+			var attrPos = xmlDocument.getAttrPosition(element, attribute);
+			errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
+		}
+	}
+
 	private static function parseDeclarations(element:Xml, prefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>,
 			xmlDocument:Xml176Document):Void {
+		checkForInvalidAttributes(element, false, xmlDocument);
 		for (child in element.iterator()) {
 			switch (child.nodeType) {
 				case Element:
@@ -464,13 +469,7 @@ class XmlComponent {
 					var initExpr:Expr = null;
 					if (isBuiltIn(childXmlName, prefixMap) && childXmlName.localName != "Dynamic" && childXmlName.localName != "Any"
 						&& childXmlName.localName != "Array") {
-						for (attribute in child.attributes()) {
-							if (attribute == "id") {
-								continue;
-							}
-							var attrPos = xmlDocument.getAttrPosition(child, attribute);
-							errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
-						}
+						checkForInvalidAttributes(child, true, xmlDocument);
 						for (grandChild in child.iterator()) {
 							var str = StringTools.trim(grandChild.nodeValue);
 							initExpr = createValueExprForDynamic(str);
@@ -532,13 +531,7 @@ class XmlComponent {
 						&& childXmlName.localName != "Dynamic"
 						&& childXmlName.localName != "Any"
 						&& childXmlName.localName != "Array") {
-						for (attribute in child.attributes()) {
-							if (attribute == "id") {
-								continue;
-							}
-							var attrPos = xmlDocument.getAttrPosition(child, attribute);
-							errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
-						}
+						checkForInvalidAttributes(child, true, xmlDocument);
 						for (grandChild in child.iterator()) {
 							if (!isArray && valueExprs.length > 0) {
 								errorAtXmlPosition('The child of type \'${grandChild.nodeType}\' is unexpected', xmlDocument.getNodePosition(child));
