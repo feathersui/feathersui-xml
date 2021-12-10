@@ -41,19 +41,33 @@ class FeathersUICoreNamespace {
 	private static final MAPPINGS_FEATHERS_UI = [
 		// @formatter:off
 
-		//components
+		// components
 		"Application" => "feathers.controls.Application",
 		"AssetLoader" => "feathers.controls.AssetLoader",
 		"Button" => "feathers.controls.Button",
+		"ButtonBar" => "feathers.controls.ButtonBar",
 		"Callout" => "feathers.controls.Callout",
 		"Check" => "feathers.controls.Check",
 		"ComboBox" => "feathers.controls.ComboBox",
+		"DatePicker" => "feathers.controls.DatePicker",
+		"HDividedBox" => "feathers.controls.HDividedBox",
+		"VDividedBox" => "feathers.controls.VDividedBox",
+		"Drawer" => "feathers.controls.Drawer",
+		"Form" => "feathers.controls.Form",
+		"FormItem" => "feathers.controls.FormItem",
 		"GridView" => "feathers.controls.GridView",
 		"GridViewColumn" => "feathers.controls.GridViewColumn",
+		"GroupListView" => "feathers.controls.GroupListView",
+		"Header" => "feathers.controls.Header",
+		"ItemRenderer" => "feathers.controls.ItemRenderer",
 		"Label" => "feathers.controls.Label",
 		"LayoutGroup" => "feathers.controls.LayoutGroup",
+		"LayoutGroupItemRenderer" => "feathers.controls.LayoutGroupItemRenderer",
 		"ListView" => "feathers.controls.ListView",
+		"NumericStepper" => "feathers.controls.NumericStepper",
+		"PageIndicator" => "feathers.controls.PageIndicator",
 		"Panel" => "feathers.controls.Panel",
+		"PopUpDatePicker" => "feathers.controls.PopUpDatePicker",
 		"PopUpListView" => "feathers.controls.PopUpListView",
 		"HProgressBar" => "feathers.controls.HProgressBar",
 		"VProgressBar" => "feathers.controls.VProgressBar",
@@ -66,22 +80,48 @@ class FeathersUICoreNamespace {
 		"VSlider" => "feathers.controls.VSlider",
 		"StackNavigator" => "feathers.controls.StackNavigator",
 		"TabBar" => "feathers.controls.TabBar",
+		"TabNavigator" => "feathers.controls.TabNavigator",
 		"TextArea" => "feathers.controls.TextArea",
 		"TextCallout" => "feathers.controls.TextCallout",
 		"TextInput" => "feathers.controls.TextInput",
 		"ToggleButton" => "feathers.controls.ToggleButton",
 		"ToggleSwitch" => "feathers.controls.ToggleSwitch",
+		"TreeView" => "feathers.controls.TreeView",
 
-		//collections
+		// collections
 		"ArrayCollection" => "feathers.data.ArrayCollection",
+		"ArrayHierarchicalCollection" => "feathers.data.ArrayHierarchicalCollection",
+		"TreeCollection" => "feathers.data.TreeCollection",
+		"TreeNode" => "feathers.data.TreeNode",
 
-		//layouts
+		// layouts
 		"AnchorLayout" => "feathers.layout.AnchorLayout",
 		"AnchorLayoutData" => "feathers.layout.AnchorLayoutData",
 		"HorizontalLayout" => "feathers.layout.HorizontalLayout",
 		"HorizontalLayoutData" => "feathers.layout.HorizontalLayoutData",
+		"HorizontalListLayout" => "feathers.layout.HorizontalListLayout",
+		"ResponsiveGridLayout" => "feathers.layout.ResponsiveGridLayout",
+		"ResponsiveGridLayoutData" => "feathers.layout.ResponsiveGridLayoutData",
+		"TiledRowsLayout" => "feathers.layout.TiledRowsLayout",
+		"TiledRowsListLayout" => "feathers.layout.TiledRowsListLayout",
+		"PagedTiledRowsListLayout" => "feathers.layout.PagedTiledRowsListLayout",
 		"VerticalLayout" => "feathers.layout.VerticalLayout",
-		"VerticalLayoutData" => "feathers.layout.VerticalLayoutData"
+		"VerticalLayoutData" => "feathers.layout.VerticalLayoutData",
+		"VerticalListLayout" => "feathers.layout.VerticalListLayout",
+		"VerticalListFixedRowLayout" => "feathers.layout.VerticalListFixedRowLayout",
+
+		// skins
+		"CircleSkin" => "feathers.skins.CircleSkin",
+		"EllipseSkin" => "feathers.skins.EllipseSkin",
+		"HorizontalLineSkin" => "feathers.skins.HorizontalLineSkin",
+		"LeftAndRightBorderSkin" => "feathers.skins.LeftAndRightBorderSkin",
+		"PillSkin" => "feathers.skins.PillSkin",
+		"RectangleSkin" => "feathers.skins.RectangleSkin",
+		"TabSkin" => "feathers.skins.TabSkin",
+		"TopAndBottomBorderSkin" => "feathers.skins.TopAndBottomBorderSkin",
+		"TriangleSkin" => "feathers.skins.TriangleSkin",
+		"UnderlineSkin" => "feathers.skins.UnderlineSkin",
+		"VerticalLineSkin" => "feathers.skins.VerticalLineSkin",
 
 		// @formatter:on
 	];
