@@ -457,7 +457,13 @@ class XmlComponent {
 					var initExpr:Expr = null;
 					if (isBuiltIn(childXmlName, prefixMap) && childXmlName.localName != "Dynamic" && childXmlName.localName != "Any"
 						&& childXmlName.localName != "Array") {
-						// TODO: parse attributes too
+						for (attribute in child.attributes()) {
+							if (attribute == "id") {
+								continue;
+							}
+							var attrPos = xmlDocument.getAttrPosition(child, attribute);
+							errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
+						}
 						for (grandChild in child.iterator()) {
 							var str = StringTools.trim(grandChild.nodeValue);
 							initExpr = createValueExprForDynamic(str);
@@ -519,7 +525,13 @@ class XmlComponent {
 						&& childXmlName.localName != "Dynamic"
 						&& childXmlName.localName != "Any"
 						&& childXmlName.localName != "Array") {
-						// TODO: parse attributes too
+						for (attribute in child.attributes()) {
+							if (attribute == "id") {
+								continue;
+							}
+							var attrPos = xmlDocument.getAttrPosition(child, attribute);
+							errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
+						}
 						for (grandChild in child.iterator()) {
 							if (!isArray && valueExprs.length > 0) {
 								errorAtXmlPosition('The child of type \'${grandChild.nodeType}\' is unexpected', xmlDocument.getNodePosition(child));
