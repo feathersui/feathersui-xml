@@ -338,7 +338,8 @@ class XmlComponent {
 						foundField = findField(parentType, localName);
 					}
 					if (foundField == null && parentType != null) {
-						if (!hasDefaultProperty) {
+						var isArray = parentType.name == "Array" && parentType.pack.length == 0;
+						if (!hasDefaultProperty && !isArray) {
 							errorAtXmlPosition('The \'<${child.nodeName}>\' tag is unexpected', xmlDocument.getNodePosition(child));
 						}
 						if (defaultChildren == null) {
