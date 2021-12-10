@@ -44,6 +44,7 @@ class XmlComponent {
 		"Bool" => "Bool",
 		"String" => "String",
 		"Dynamic" => "Dynamic",
+		"Any" => "Any",
 		"Array" => "Array"
 	];
 	private static var uriToMappings:Map<String, Map<String, String>> = [URI_HAXE => MAPPINGS_HAXE];
@@ -425,7 +426,8 @@ class XmlComponent {
 					var childXmlName = getXmlName(child, localPrefixMap, xmlDocument);
 					var objectID = child.get(PROPERTY_ID);
 					var initExpr:Expr = null;
-					if (isBuiltIn(childXmlName, prefixMap) && childXmlName.localName != "Dynamic" && childXmlName.localName != "Array") {
+					if (isBuiltIn(childXmlName, prefixMap) && childXmlName.localName != "Dynamic" && childXmlName.localName != "Any"
+						&& childXmlName.localName != "Array") {
 						// TODO: parse attributes too
 						for (grandChild in child.iterator()) {
 							var str = StringTools.trim(grandChild.nodeValue);
@@ -486,6 +488,7 @@ class XmlComponent {
 					var childXmlName = getXmlName(child, parentPrefixMap, xmlDocument);
 					if (isBuiltIn(childXmlName, parentPrefixMap)
 						&& childXmlName.localName != "Dynamic"
+						&& childXmlName.localName != "Any"
 						&& childXmlName.localName != "Array") {
 						// TODO: parse attributes too
 						for (grandChild in child.iterator()) {
@@ -583,7 +586,7 @@ class XmlComponent {
 		var localVarName = "object";
 		var childTypePath:TypePath = null;
 		if (classType == null) {
-			childTypePath = {name: "Dynamic", pack: []};
+			childTypePath = {name: xmlName.localName, pack: []};
 		} else {
 			childTypePath = {name: classType.name, pack: classType.pack};
 			if (classType.name == "Array" && classType.pack.length == 0) {
@@ -699,7 +702,7 @@ class XmlComponent {
 			} else if (parentType == null) {
 				var fieldValue = element.get(attribute);
 				var valueExpr = createValueExprForDynamic(fieldValue);
-				var setExpr = macro $i{targetIdentifier}.$attribute = ${valueExpr};
+				var setExpr = macro Reflect.setField($i{targetIdentifier}, $v{attribute}, ${valueExpr});
 				initExprs.push(setExpr);
 			} else {
 				var foundEvent = findEvent(parentType, attribute);
@@ -824,7 +827,11 @@ class XmlComponent {
 			case TInst(t, _):
 				return t.get();
 			case TAbstract(t, params):
-				if (t.get().name == "Dynamic") {
+				var abstractType = t.get();
+				if (abstractType.name == "Dynamic" && abstractType.pack.length == 0) {
+					return null;
+				}
+				if (abstractType.name == "Any" && abstractType.pack.length == 0) {
 					return null;
 				}
 				errorAtXmlPosition('Cannot create object \'<${xmlName.prefix}:${xmlName.localName}>\'', xmlDocument.getNodePosition(element));

@@ -127,6 +127,16 @@ An anonymous structure. Properties may be set using XML attributes, child elemen
 </hx:Dynamic>
 ```
 
+### `Any`
+
+An anonymous structure. Properties may be set using XML attributes, child elements, or a combination of both.
+
+```xml
+<hx:Any name="Iron Fist">
+	<hx:secretIdentity>Danny Rand</hx:secretIdentity>
+</hx:Any>
+```
+
 ### `Array`
 
 An collection of items, which are added as child elements.
