@@ -8,15 +8,17 @@
 
 package com.feathersui.xml;
 
-import haxe.xml.Parser.XmlParserException;
-import haxe.macro.Type.ClassField;
-import haxe.macro.Type.ClassType;
+#if macro
+import com.tenderowls.xml176.Xml176Parser;
 import haxe.io.Path;
 import haxe.macro.Context;
 import haxe.macro.Expr;
-#if macro
-import sys.io.File;
+import haxe.macro.PositionTools;
+import haxe.macro.Type.ClassField;
+import haxe.macro.Type.ClassType;
+import haxe.xml.Parser.XmlParserException;
 import sys.FileSystem;
+import sys.io.File;
 #end
 
 /**
@@ -31,6 +33,7 @@ class XmlComponent {
 	private static final RESERVED_PROPERTIES = [PROPERTY_ID, PROPERTY_XMLNS];
 	private static var componentCounter = 0;
 	private static var objectCounter = 0;
+	private static var posInfos:{min:Int, max:Int, file:String};
 
 	private static final URI_HAXE = "http://ns.haxe.org/4/xml";
 	private static final MAPPINGS_HAXE = [
@@ -68,21 +71,23 @@ class XmlComponent {
 		on demand.
 	**/
 	public macro static function buildWithFile(filePath:String):Array<Field> {
-		var xml = loadXmlFile(filePath);
+		var xmlDocument = loadXmlFile(filePath);
+		var xml = xmlDocument.document;
 		var firstElement = xml.firstElement();
 		if (firstElement == null) {
-			Context.fatalError('No root tag found in XML', Context.currentPos());
+			Context.error('No root tag found in XML', Context.currentPos());
 		}
 
-		var componentTypeName = getComponentType(getXmlName(firstElement), getLocalPrefixMap(firstElement));
+		var prefixMap = getLocalPrefixMap(firstElement);
+		var componentTypeName = getComponentType(getXmlName(firstElement, prefixMap, xmlDocument), prefixMap);
 		var localClass = Context.getLocalClass().get();
 		var superClass = localClass.superClass;
 		if (superClass == null || Std.string(superClass.t) != componentTypeName) {
-			Context.fatalError('Class ${localClass.name} must extend ${componentTypeName}', Context.currentPos());
+			Context.error('Class ${localClass.name} must extend ${componentTypeName}', Context.currentPos());
 		}
 
 		var buildFields = Context.getBuildFields();
-		parseRootElement(firstElement, "XMLComponent_initXML", buildFields);
+		parseRootElement(firstElement, "XMLComponent_initXML", buildFields, xmlDocument);
 		return buildFields;
 	}
 
@@ -100,9 +105,9 @@ class XmlComponent {
 			typeDef = FILE_PATH_TO_TYPE_DEFINITION.get(filePath);
 		}
 		if (typeDef == null) {
-			var xml = loadXmlFile(filePath);
+			var xmlDocument = loadXmlFile(filePath);
 			var nameSuffix = Path.withoutExtension(Path.withoutDirectory(filePath));
-			typeDef = createTypeDefinitionFromXml(xml, nameSuffix);
+			typeDef = createTypeDefinitionFromXml(xmlDocument, nameSuffix);
 			FILE_PATH_TO_TYPE_DEFINITION.set(filePath, typeDef);
 		}
 		var typePath = {name: typeDef.name, pack: typeDef.pack};
@@ -113,6 +118,7 @@ class XmlComponent {
 		Instantiates a component from markup.
 	**/
 	public macro static function withMarkup(input:ExprOf<String>):Expr {
+		posInfos = PositionTools.getInfos(input.pos);
 		var xmlString:String = null;
 		switch (input.expr) {
 			case EMeta({name: ":markup"}, {expr: EConst(CString(s))}):
@@ -122,8 +128,8 @@ class XmlComponent {
 			case _:
 				throw new haxe.macro.Expr.Error("Expected markup or string literal", input.pos);
 		}
-		var xml = loadXmlString(xmlString);
-		var typeDef = createTypeDefinitionFromXml(xml, "Xml");
+		var xmlDocument = loadXmlString(xmlString);
+		var typeDef = createTypeDefinitionFromXml(xmlDocument, "Xml");
 		var typePath = {name: typeDef.name, pack: typeDef.pack};
 		return macro new $typePath();
 	}
@@ -141,31 +147,57 @@ class XmlComponent {
 		return Path.join([modulePath, filePath]);
 	}
 
-	private static function loadXmlFile(filePath:String):Xml {
+	private static function loadXmlFile(filePath:String):Xml176Document {
 		filePath = resolveAsset(filePath);
 		if (!FileSystem.exists(filePath)) {
-			Context.fatalError('Component XML file not found: ${filePath}', Context.currentPos());
+			Context.error('Component XML file not found: ${filePath}', Context.currentPos());
 		}
 		var content = File.getContent(filePath);
+		trace(filePath);
+		posInfos = {file: filePath, min: 0, max: content.length};
 		return loadXmlString(content);
 	}
 
-	private static function loadXmlString(xmlString:String):Xml {
+	private static function loadXmlString(xmlString:String):Xml176Document {
 		try {
-			return Xml.parse(xmlString);
+			return Xml176Parser.parse(xmlString);
 		} catch (e:XmlParserException) {
-			Context.fatalError('XML parse error (${e.lineNumber}, ${e.positionAtLine}): ${e.message}', Context.currentPos());
+			errorAtXmlPosition('XML parse error: ${e.message}', {from: e.position});
+		} catch (e:String) {
+			errorAtXmlPosition('XML parse error: ${e}', {from: 0});
 		}
 		return null;
 	}
 
-	private static function createTypeDefinitionFromXml(root:Xml, nameSuffix:String):TypeDefinition {
+	private static function xmlPosToPosition(xmlPos:Pos):Position {
+		var min = posInfos.min;
+		var from = 0;
+		var to = 0;
+		if (xmlPos != null) {
+			from = xmlPos.from;
+			to = (xmlPos.to != null) ? xmlPos.to : xmlPos.from;
+		}
+		return Context.makePosition({file: posInfos.file, min: min + from, max: min + to});
+	}
+
+	private static function fatalErrorAtXmlPosition(text:String, xmlPos:Pos):Void {
+		var errorPos = xmlPosToPosition(xmlPos);
+		Context.fatalError(text, errorPos);
+	}
+
+	private static function errorAtXmlPosition(text:String, xmlPos:Pos):Void {
+		var errorPos = xmlPosToPosition(xmlPos);
+		Context.error(text, errorPos);
+	}
+
+	private static function createTypeDefinitionFromXml(xmlDocument:Xml176Document, nameSuffix:String):TypeDefinition {
+		var root = xmlDocument.document;
 		var firstElement = root.firstElement();
 		if (firstElement == null) {
-			Context.fatalError('No root tag found in XML', Context.currentPos());
+			errorAtXmlPosition('No root tag found in XML', xmlDocument.getNodePosition(root));
 		}
 		var buildFields:Array<Field> = [];
-		var classType = parseRootElement(firstElement, "XMLComponent_initXML", buildFields);
+		var classType = parseRootElement(firstElement, "XMLComponent_initXML", buildFields, xmlDocument);
 		var componentName = 'FeathersUI_XMLComponent_${nameSuffix}_${componentCounter}';
 		componentCounter++;
 		var typeDef:TypeDefinition = null;
@@ -182,15 +214,15 @@ class XmlComponent {
 		return typeDef;
 	}
 
-	private static function parseRootElement(element:Xml, overrideName:String, buildFields:Array<Field>):ClassType {
+	private static function parseRootElement(element:Xml, overrideName:String, buildFields:Array<Field>, xmlDocument:Xml176Document):ClassType {
 		objectCounter = 0;
 		var localPrefixMap = getLocalPrefixMap(element);
-		var xmlName = getXmlName(element);
-		var classType = getClassType(xmlName, localPrefixMap);
+		var xmlName = getXmlName(element, localPrefixMap, xmlDocument);
+		var classType = getClassType(xmlName, localPrefixMap, element, xmlDocument);
 		var generatedFields:Array<Field> = [];
 		var bodyExprs:Array<Expr> = [];
-		parseAttributes(element, classType, "this", localPrefixMap, bodyExprs);
-		parseChildrenOfObject(element, classType, "this", xmlName.prefix, localPrefixMap, generatedFields, bodyExprs);
+		parseAttributes(element, classType, "this", localPrefixMap, bodyExprs, xmlDocument);
+		parseChildrenOfObject(element, classType, "this", xmlName.prefix, localPrefixMap, generatedFields, bodyExprs, xmlDocument);
 		buildFields.push({
 			name: overrideName,
 			pos: Context.currentPos(),
@@ -263,42 +295,42 @@ class XmlComponent {
 	}
 
 	private static function parseChildrenOfObject(element:Xml, parentType:ClassType, targetIdentifier:String, parentPrefix:String,
-			prefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>):Void {
+			prefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>, xmlDocument:Xml176Document):Void {
 		var defaultChildren:Array<Xml> = null;
 		var hasDefaultProperty = parentType == null || parentType.meta.has("defaultXmlProperty");
 		for (child in element.iterator()) {
 			switch (child.nodeType) {
 				case Element:
-					var childXmlName = getXmlName(child);
+					var childXmlName = getXmlName(child, prefixMap, xmlDocument);
 					if (isXmlLanguageElement("Binding", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Component", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Declarations", childXmlName, prefixMap)) {
 						if (targetIdentifier == "this") {
-							parseDeclarations(child, prefixMap, parentFields, initExprs);
+							parseDeclarations(child, prefixMap, parentFields, initExprs, xmlDocument);
 						} else {
-							Context.fatalError('The \'<${child.nodeName}>\' tag must be a child of the root element', Context.currentPos());
+							errorAtXmlPosition('The \'<${child.nodeName}>\' tag must be a child of the root element', xmlDocument.getNodePosition(child));
 						}
 						continue;
 					} else if (isXmlLanguageElement("Definition", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("DesignLayer", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Library", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Metadata", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Model", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Private", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Reparent", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Script", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					} else if (isXmlLanguageElement("Style", childXmlName, prefixMap)) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is not supported', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is not supported', xmlDocument.getNodePosition(child));
 					}
 					var foundField:ClassField = null;
 					if (childXmlName.prefix == parentPrefix) {
@@ -307,7 +339,7 @@ class XmlComponent {
 					}
 					if (foundField == null && parentType != null) {
 						if (!hasDefaultProperty) {
-							Context.fatalError('The \'<${child.nodeName}>\' tag is unexpected', Context.currentPos());
+							errorAtXmlPosition('The \'<${child.nodeName}>\' tag is unexpected', xmlDocument.getNodePosition(child));
 						}
 						if (defaultChildren == null) {
 							defaultChildren = [];
@@ -317,15 +349,15 @@ class XmlComponent {
 					}
 
 					var fieldType = foundField != null ? foundField.type : null;
-					parseChildrenForField(child.iterator(), targetIdentifier, foundField, childXmlName.localName, fieldType, prefixMap, parentFields,
-						initExprs);
+					parseChildrenForField(child, child.iterator(), targetIdentifier, foundField, childXmlName.localName, fieldType, prefixMap, parentFields,
+						initExprs, xmlDocument);
 				case PCData:
 					var str = StringTools.trim(child.nodeValue);
 					if (str.length == 0) {
 						continue;
 					}
 					if (!hasDefaultProperty) {
-						Context.fatalError('The \'${child.nodeValue}\' value is unexpected', Context.currentPos());
+						errorAtXmlPosition('The \'${child.nodeValue}\' value is unexpected', xmlDocument.getNodePosition(child));
 					}
 					if (defaultChildren == null) {
 						defaultChildren = [];
@@ -333,7 +365,7 @@ class XmlComponent {
 					defaultChildren.push(child);
 				case CData:
 					if (!hasDefaultProperty) {
-						Context.fatalError('The \'${child.nodeValue}\' value is unexpected', Context.currentPos());
+						errorAtXmlPosition('The \'${child.nodeValue}\' value is unexpected', xmlDocument.getNodePosition(child));
 					}
 					if (defaultChildren == null) {
 						defaultChildren = [];
@@ -348,14 +380,14 @@ class XmlComponent {
 		}
 
 		if (parentType.name == "Array" && parentType.pack.length == 0) {
-			parseChildrenForField(defaultChildren.iterator(), targetIdentifier, null, null, Context.getType(parentType.name), prefixMap, parentFields,
-				initExprs);
+			parseChildrenForField(element, defaultChildren.iterator(), targetIdentifier, null, null, Context.getType(parentType.name), prefixMap,
+				parentFields, initExprs, xmlDocument);
 			return;
 		}
 
 		var defaultXmlPropMeta = parentType.meta.extract("defaultXmlProperty")[0];
 		if (defaultXmlPropMeta.params.length != 1) {
-			Context.fatalError('The defaultXmlProperty meta must have one property name', defaultXmlPropMeta.pos);
+			Context.error('The defaultXmlProperty meta must have one property name', defaultXmlPropMeta.pos);
 		}
 		var param = defaultXmlPropMeta.params[0];
 		var propertyName:String = null;
@@ -369,25 +401,27 @@ class XmlComponent {
 			default:
 		}
 		if (propertyName == null) {
-			Context.fatalError('The defaultXmlProperty meta param must be a string', param.pos);
+			Context.error('The defaultXmlProperty meta param must be a string', param.pos);
 		}
 		var defaultField = findField(parentType, propertyName);
 		if (defaultField == null) {
 			// the metadata is there, but it seems to be referencing a property
 			// that doesn't exist
-			Context.fatalError('Invalid default property \'${propertyName}\' for the \'<${element.nodeName}>\' tag', Context.currentPos());
+			Context.error('Invalid default property \'${propertyName}\' for the \'<${element.nodeName}>\' tag', defaultXmlPropMeta.pos);
 		}
-		var xmlName = getXmlName(element);
+		var xmlName = getXmlName(element, prefixMap, xmlDocument);
 
-		parseChildrenForField(defaultChildren.iterator(), targetIdentifier, defaultField, defaultField.name, defaultField.type, prefixMap, parentFields,
-			initExprs);
+		parseChildrenForField(element, defaultChildren.iterator(), targetIdentifier, defaultField, defaultField.name, defaultField.type, prefixMap,
+			parentFields, initExprs, xmlDocument);
 	}
 
-	private static function parseDeclarations(element:Xml, prefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>):Void {
+	private static function parseDeclarations(element:Xml, prefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>,
+			xmlDocument:Xml176Document):Void {
 		for (child in element.iterator()) {
 			switch (child.nodeType) {
 				case Element:
-					var childXmlName = getXmlName(child);
+					var localPrefixMap = getLocalPrefixMap(child, prefixMap);
+					var childXmlName = getXmlName(child, localPrefixMap, xmlDocument);
 					var objectID = child.get(PROPERTY_ID);
 					var initExpr:Expr = null;
 					if (isBuiltIn(childXmlName, prefixMap) && childXmlName.localName != "Dynamic" && childXmlName.localName != "Array") {
@@ -406,7 +440,7 @@ class XmlComponent {
 							}
 						}
 					} else {
-						var functionName:String = parseChildElement(child, prefixMap, parentFields);
+						var functionName:String = parseChildElement(child, prefixMap, parentFields, xmlDocument);
 						initExpr = macro $i{functionName}();
 					}
 					if (objectID != null) {
@@ -418,15 +452,16 @@ class XmlComponent {
 					if (str.length == 0) {
 						continue;
 					}
-					Context.fatalError('The \'${child.nodeValue}\' value is unexpected', Context.currentPos());
+					errorAtXmlPosition('The \'${child.nodeValue}\' value is unexpected', xmlDocument.getNodePosition(child));
 				default:
-					Context.fatalError('Cannot parse XML child \'${child.nodeValue}\' of type \'${child.nodeType}\'', Context.currentPos());
+					errorAtXmlPosition('Cannot parse XML child \'${child.nodeValue}\' of type \'${child.nodeType}\'', xmlDocument.getNodePosition(child));
 			}
 		}
 	}
 
-	private static function parseChildrenForField(children:Iterator<Xml>, targetIdentifier:String, field:ClassField, fieldName:String,
-			fieldType:haxe.macro.Type, parentPrefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>):Void {
+	private static function parseChildrenForField(parent:Xml, children:Iterator<Xml>, targetIdentifier:String, field:ClassField, fieldName:String,
+			fieldType:haxe.macro.Type, parentPrefixMap:Map<String, String>, parentFields:Array<Field>, initExprs:Array<Expr>,
+			xmlDocument:Xml176Document):Void {
 		var isArray = false;
 		while (fieldType != null) {
 			switch (fieldType) {
@@ -445,27 +480,27 @@ class XmlComponent {
 			switch (child.nodeType) {
 				case Element:
 					if (!isArray && valueExprs.length > 0) {
-						Context.fatalError('The \'<${child.nodeName}>\' tag is unexpected', Context.currentPos());
+						errorAtXmlPosition('The \'<${child.nodeName}>\' tag is unexpected', xmlDocument.getNodePosition(child));
 					}
-					var childXmlName = getXmlName(child);
+					var childXmlName = getXmlName(child, parentPrefixMap, xmlDocument);
 					if (isBuiltIn(childXmlName, parentPrefixMap)
 						&& childXmlName.localName != "Dynamic"
 						&& childXmlName.localName != "Array") {
 						// TODO: parse attributes too
 						for (grandChild in child.iterator()) {
 							if (!isArray && valueExprs.length > 0) {
-								Context.fatalError('The child of type \'${grandChild.nodeType}\' is unexpected', Context.currentPos());
+								errorAtXmlPosition('The child of type \'${grandChild.nodeType}\' is unexpected', xmlDocument.getNodePosition(child));
 							}
 							var str = StringTools.trim(grandChild.nodeValue);
 							if (isArray) {
 								var exprType = Context.getType(childXmlName.localName);
-								var valueExpr = createValueExprForType(exprType, str);
+								var valueExpr = createValueExprForType(exprType, str, child, xmlDocument);
 								valueExprs.push(valueExpr);
 							} else if (field == null) {
 								var valueExpr = createValueExprForDynamic(str);
 								valueExprs.push(valueExpr);
 							} else {
-								var valueExpr = createValueExprForField(field, str);
+								var valueExpr = createValueExprForField(field, str, child, xmlDocument);
 								valueExprs.push(valueExpr);
 							}
 						}
@@ -473,7 +508,7 @@ class XmlComponent {
 						if (valueExprs.length == 0 && childXmlName.localName == "Array") {
 							firstChildIsArray = true;
 						}
-						var functionName:String = parseChildElement(child, parentPrefixMap, parentFields);
+						var functionName:String = parseChildElement(child, parentPrefixMap, parentFields, xmlDocument);
 						var valueExpr = macro $i{functionName}();
 						valueExprs.push(valueExpr);
 					}
@@ -484,34 +519,34 @@ class XmlComponent {
 						continue;
 					}
 					if (!isArray && valueExprs.length > 0) {
-						Context.fatalError('The child of type \'${child.nodeType}\' is unexpected', Context.currentPos());
+						errorAtXmlPosition('The child of type \'${child.nodeType}\' is unexpected', xmlDocument.getNodePosition(child));
 					}
 					if (field == null) {
 						var valueExpr = createValueExprForDynamic(str);
 						valueExprs.push(valueExpr);
 					} else {
-						var valueExpr = createValueExprForField(field, str);
+						var valueExpr = createValueExprForField(field, str, child, xmlDocument);
 						valueExprs.push(valueExpr);
 					}
 				case CData:
 					if (!isArray && valueExprs.length > 0) {
-						Context.fatalError('The child of type \'${child.nodeType}\' is unexpected', Context.currentPos());
+						errorAtXmlPosition('The child of type \'${child.nodeType}\' is unexpected', xmlDocument.getNodePosition(child));
 					}
 					var str = child.nodeValue;
 					if (field == null) {
 						var valueExpr = createValueExprForDynamic(str);
 						valueExprs.push(valueExpr);
 					} else {
-						var valueExpr = createValueExprForField(field, str);
+						var valueExpr = createValueExprForField(field, str, child, xmlDocument);
 						valueExprs.push(valueExpr);
 					}
 				default:
-					Context.fatalError('Cannot parse XML child \'${child.nodeValue}\' of type \'${child.nodeType}\'', Context.currentPos());
+					errorAtXmlPosition('Cannot parse XML child \'${child.nodeValue}\' of type \'${child.nodeType}\'', xmlDocument.getNodePosition(child));
 			}
 		}
 
 		if (valueExprs.length == 0) {
-			Context.fatalError('Value for field \'${fieldName}\' must not be empty', Context.currentPos());
+			errorAtXmlPosition('Value for field \'${fieldName}\' must not be empty', xmlDocument.getNodePosition(parent));
 		}
 		if (!isArray) {
 			var valueExpr = valueExprs[0];
@@ -539,10 +574,10 @@ class XmlComponent {
 		}
 	}
 
-	private static function parseChildElement(element:Xml, parentPrefixMap:Map<String, String>, parentFields:Array<Field>):String {
+	private static function parseChildElement(element:Xml, parentPrefixMap:Map<String, String>, parentFields:Array<Field>, xmlDocument:Xml176Document):String {
 		var localPrefixMap = getLocalPrefixMap(element, parentPrefixMap);
-		var xmlName = getXmlName(element);
-		var classType = getClassType(xmlName, localPrefixMap);
+		var xmlName = getXmlName(element, localPrefixMap, xmlDocument);
+		var classType = getClassType(xmlName, localPrefixMap, element, xmlDocument);
 
 		var localVarName = "object";
 		var childTypePath:TypePath = null;
@@ -572,8 +607,8 @@ class XmlComponent {
 		}
 
 		var setFieldExprs:Array<Expr> = [];
-		parseAttributes(element, classType, localVarName, localPrefixMap, setFieldExprs);
-		parseChildrenOfObject(element, classType, localVarName, xmlName.prefix, localPrefixMap, parentFields, setFieldExprs);
+		parseAttributes(element, classType, localVarName, localPrefixMap, setFieldExprs, xmlDocument);
+		parseChildrenOfObject(element, classType, localVarName, xmlName.prefix, localPrefixMap, parentFields, setFieldExprs, xmlDocument);
 		if (setIDExpr != null) {
 			setFieldExprs.push(setIDExpr);
 		}
@@ -640,13 +675,13 @@ class XmlComponent {
 		return events;
 	}
 
-	private static function parseAttributes(element:Xml, parentType:ClassType, targetIdentifier:String, prefixMap:Map<String, String>,
-			initExprs:Array<Expr>):Void {
+	private static function parseAttributes(element:Xml, parentType:ClassType, targetIdentifier:String, prefixMap:Map<String, String>, initExprs:Array<Expr>,
+			xmlDocument:Xml176Document):Void {
 		for (attribute in element.attributes()) {
 			var foundField:ClassField = findField(parentType, attribute);
 			if (foundField != null) {
 				var fieldValue = element.get(attribute);
-				var valueExpr = createValueExprForField(foundField, fieldValue);
+				var valueExpr = createValueExprForField(foundField, fieldValue, element, xmlDocument);
 				var setExpr = macro $i{targetIdentifier}.$attribute = ${valueExpr};
 				initExprs.push(setExpr);
 			} else if (parentType == null) {
@@ -663,29 +698,30 @@ class XmlComponent {
 					var addEventExpr = macro $i{targetIdentifier}.addEventListener($v{eventName}, (event) -> ${eventExpr});
 					initExprs.push(addEventExpr);
 				} else if (RESERVED_PROPERTIES.indexOf(attribute) == -1 && !StringTools.startsWith(attribute, PROPERTY_XMLNS_PREFIX)) {
-					Context.fatalError('Unknown field \'${attribute}\'', Context.currentPos());
+					var attrPos = xmlDocument.getAttrPosition(element, attribute);
+					errorAtXmlPosition('Unknown field \'${attribute}\'', attrPos);
 				}
 			}
 		}
 	}
 
-	private static function createValueExprForField(field:ClassField, value:String):Expr {
+	private static function createValueExprForField(field:ClassField, value:String, element:Xml, xmlDocument:Xml176Document):Expr {
 		var fieldName = field.name;
 		if (!field.isPublic) {
-			Context.fatalError('Cannot set field \'${fieldName}\' because it is not public', Context.currentPos());
+			errorAtXmlPosition('Cannot set field \'${fieldName}\' because it is not public', xmlDocument.getNodePosition(element));
 		}
 		if (value.length == 0) {
-			Context.fatalError('The attribute \'${fieldName}\' cannot be empty', Context.currentPos());
+			errorAtXmlPosition('The attribute \'${fieldName}\' cannot be empty', xmlDocument.getNodePosition(element));
 		}
 		switch (field.kind) {
 			case FVar(read, write):
 			default:
-				Context.fatalError('Cannot set field \'${fieldName}\'', Context.currentPos());
+				errorAtXmlPosition('Cannot set field \'${fieldName}\'', xmlDocument.getNodePosition(element));
 		}
-		return createValueExprForType(field.type, value);
+		return createValueExprForType(field.type, value, element, xmlDocument);
 	}
 
-	private static function createValueExprForType(fieldType:haxe.macro.Type, value:String):Expr {
+	private static function createValueExprForType(fieldType:haxe.macro.Type, value:String, element:Xml, xmlDocument:Xml176Document):Expr {
 		var fieldTypeName:String = null;
 		while (fieldTypeName == null) {
 			switch (fieldType) {
@@ -710,7 +746,7 @@ class XmlComponent {
 				case TLazy(f):
 					fieldType = f();
 				default:
-					Context.fatalError('Cannot parse a value of type \'${fieldTypeName}\' from \'${value}\'', Context.currentPos());
+					errorAtXmlPosition('Cannot parse a value of type \'${fieldTypeName}\' from \'${value}\'', xmlDocument.getNodePosition(element));
 			}
 		}
 		switch (fieldTypeName) {
@@ -738,7 +774,7 @@ class XmlComponent {
 				return macro $v{value};
 			default:
 		}
-		Context.fatalError('Cannot parse a value of type \'${fieldTypeName}\' from \'${value}\'', Context.currentPos());
+		errorAtXmlPosition('Cannot parse a value of type \'${fieldTypeName}\' from \'${value}\'', xmlDocument.getNodePosition(element));
 		return null;
 	}
 
@@ -759,17 +795,17 @@ class XmlComponent {
 		return macro $v{value};
 	}
 
-	private static function getClassType(xmlName:XmlName, prefixMap:Map<String, String>):ClassType {
+	private static function getClassType(xmlName:XmlName, prefixMap:Map<String, String>, element:Xml, xmlDocument:Xml176Document):ClassType {
 		var componentTypeName = getComponentType(xmlName, prefixMap);
 		if (componentTypeName == null) {
-			Context.fatalError('Class not found for \'<${xmlName.prefix}:${xmlName.localName}>\' tag', Context.currentPos());
+			errorAtXmlPosition('Class not found for \'<${xmlName.prefix}:${xmlName.localName}>\' tag', xmlDocument.getNodePosition(element));
 			return null;
 		}
 		var componentType:haxe.macro.Type = null;
 		try {
 			componentType = Context.getType(componentTypeName);
 		} catch (e:Dynamic) {
-			Context.fatalError('Cannot create object \'<${xmlName.prefix}:${xmlName.localName}>\'\n${e}', Context.currentPos());
+			errorAtXmlPosition('Cannot create object \'<${xmlName.prefix}:${xmlName.localName}>\'\n${e}', xmlDocument.getNodePosition(element));
 		}
 		var classType:ClassType = null;
 		switch (componentType) {
@@ -779,10 +815,10 @@ class XmlComponent {
 				if (t.get().name == "Dynamic") {
 					return null;
 				}
-				Context.fatalError('Cannot create object \'<${xmlName.prefix}:${xmlName.localName}>\'', Context.currentPos());
+				errorAtXmlPosition('Cannot create object \'<${xmlName.prefix}:${xmlName.localName}>\'', xmlDocument.getNodePosition(element));
 				return null;
 			default:
-				Context.fatalError('Cannot create object \'<${xmlName.prefix}:${xmlName.localName}>\'', Context.currentPos());
+				errorAtXmlPosition('Cannot create object \'<${xmlName.prefix}:${xmlName.localName}>\'', xmlDocument.getNodePosition(element));
 				return null;
 		}
 	}
@@ -807,24 +843,24 @@ class XmlComponent {
 		return localPrefixMap;
 	}
 
-	private static function getXmlName(element:Xml):XmlName {
+	private static function getXmlName(element:Xml, prefixMap:Map<String, String>, xmlDocument:Xml176Document):XmlName {
 		var nameParts = element.nodeName.split(":");
 		if (nameParts.length == 1) {
 			return new XmlName("", nameParts[0]);
 		} else if (nameParts.length == 2) {
 			var prefix = nameParts[0];
+			if (!prefixMap.exists(prefix)) {
+				errorAtXmlPosition('Unknown XML namespace prefix \'${prefix}\'', xmlDocument.getNodePosition(element));
+			}
 			var localName = nameParts[1];
 			return new XmlName(prefix, localName);
 		}
-		Context.fatalError('Invalid element name \'<${element.nodeName}>\'', Context.currentPos());
+		errorAtXmlPosition('Invalid element name \'<${element.nodeName}>\'', xmlDocument.getNodePosition(element));
 		return null;
 	}
 
 	private static function getComponentType(xmlName:XmlName, prefixMap:Map<String, String>):String {
 		var prefix = xmlName.prefix;
-		if (!prefixMap.exists(prefix)) {
-			Context.fatalError('Unknown XML namespace prefix \'${prefix}\'', Context.currentPos());
-		}
 		var uri = prefixMap.get(prefix);
 		var localName = xmlName.localName;
 		if (uri != null && uriToMappings.exists(uri)) {
@@ -841,9 +877,6 @@ class XmlComponent {
 
 	private static function isBuiltIn(xmlName:XmlName, prefixMap:Map<String, String>):Bool {
 		var prefix = xmlName.prefix;
-		if (!prefixMap.exists(prefix)) {
-			Context.fatalError('Unknown XML namespace prefix \'${prefix}\'', Context.currentPos());
-		}
 		var uri = prefixMap.get(prefix);
 		var localName = xmlName.localName;
 		if (uri == URI_HAXE && MAPPINGS_HAXE.exists(localName)) {
@@ -854,9 +887,6 @@ class XmlComponent {
 
 	private static function isXmlLanguageElement(elementName:String, xmlName:XmlName, prefixMap:Map<String, String>):Bool {
 		var prefix = xmlName.prefix;
-		if (!prefixMap.exists(prefix)) {
-			Context.fatalError('Unknown XML namespace prefix \'${prefix}\'', Context.currentPos());
-		}
 		return xmlName.localName == elementName && prefixMap.get(prefix) == URI_HAXE;
 	}
 	#end
