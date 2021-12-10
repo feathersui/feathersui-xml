@@ -25,6 +25,7 @@ import haxe.macro.Expr.Field;
 	@see `com.feathersui.xml.XmlComponent`
 **/
 class FeathersUICoreNamespace {
+	#if macro
 	public macro static function setup():Array<Field> {
 		if (setupDone) {
 			return null;
@@ -34,7 +35,6 @@ class FeathersUICoreNamespace {
 		return null;
 	}
 
-	#if macro
 	private static var setupDone = false;
 	private static final URI_FEATHERS_UI = "http://ns.feathersui.com/xml";
 
