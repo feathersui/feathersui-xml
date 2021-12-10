@@ -1,0 +1,43 @@
+name: API Reference
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.3
+      - name: Set up Haxelib dependencies
+        run: |
+          haxelib install lime --quiet
+          haxelib install openfl --quiet
+          haxelib install feathersui --quiet
+          haxelib install dox --quiet
+          haxelib dev feathersui-xml $GITHUB_WORKSPACE
+      - name: Build API reference
+        working-directory: docs
+        run: haxe docs.hxml
+      - uses: actions/upload-artifact@v2
+        with:
+          name: feathersui-xml-docs
+          path: bin/api/
+          if-no-files-found: error
+      - name: Deploy to unstable
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: garygrossgarten/github-action-scp@release
+        with:
+          local: bin/api
+          remote: api.feathersui.com/feathersui-xml/unstable
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASS }}
