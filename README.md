@@ -2,11 +2,11 @@
 
 An **experimental** library containing [Haxe macros](https://haxe.org/manual/macro.html) to create [Feathers UI](https://feathersui.com/) components at compile-time using markup.
 
-This markup is inspired by MXML, which is an XML dialect designed for creating user interfaces with Apache Flex (originally developed at Macromedia and then Adobe).
+This markup is inspired by MXML, which is an XML dialect designed for creating user interfaces with Apache Flex (originally developed at Macromedia and Adobe).
 
 ## Installation
 
-This library is not yet available on Haxelib, so you'll need to install it and its dependencies from Github.
+This library is not yet available on Haxelib, so you'll need to install it from Github.
 
 ```sh
 haxelib git feathersui-xml https://github.com/feathersui/feathersui-xml.git
