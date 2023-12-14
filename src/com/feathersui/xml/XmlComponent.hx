@@ -40,7 +40,11 @@ import sys.io.File;
 		</f:LayoutGroup>'
 	);
 	container.addChild(instance);
-	container.okButton.addEventListener(TriggerEvent.TRIGGER, (event) -> {
+
+	var okButton = cast(instance.getChildAt(0));
+	//alternatively, use var okButton = XmlComponent.withMarkup('<f:Button xmlns:f="http://ns.feathersui.com/xml" id="okButton" text="OK"/>');
+	//then add it to instance
+	okButton.addEventListener(TriggerEvent.TRIGGER, (event) -> {
 		trace("triggered the OK button");
 	});
 	```
