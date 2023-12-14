@@ -58,7 +58,7 @@ var instance = XmlComponent.withMarkup(
 	</f:LayoutGroup>'
 );
 container.addChild(instance);
-container.okButton.addEventListener(TriggerEvent.TRIGGER, (event) -> {
+instance.okButton.addEventListener(TriggerEvent.TRIGGER, (event) -> {
 	trace("triggered the OK button");
 });
 ```
